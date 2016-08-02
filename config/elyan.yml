@@ -1,2 +1,7 @@
-repos:
- - basho/riak
+:repos:
+ - davidx/prtester
+ - basho-bin/basho-builds
+ #- basho/riak
+
+:minimum_reviewers: 2
+

@@ -1,13 +1,16 @@
 #!/usr/bin/env ruby
 
-$:.unshift(File.join(File.dirname(__FILE__),'/../lib'))
+here_dir=File.join(File.dirname(__FILE__))
+$:.unshift(File.join(here_dir, '/../lib'))
+
 require 'elyan'
 require 'choice'
 require 'log4r'
 include Log4r
+include Elyan
 
 mylogger = Logger.new 'mylog'
-formatter = PatternFormatter.new(:pattern => "[%l] %d :: %.20m")
+formatter = PatternFormatter.new(:pattern => "[%l] %d :Elyan: %1m")
 mylogger.outputters = StdoutOutputter.new("console", :formatter => formatter)
 mylogger.level = Log4r::INFO
 
@@ -15,10 +18,11 @@ Choice.options do
   header ''
   header 'Specific options:'
 
-  option :config, :required => true do
+  option :config_file do
     short '-c'
     long '--config=CONFIG'
     desc 'The config file'
+    default File.join(here_dir, '/../config/elyan.yml')
   end
 
   separator ''
@@ -36,6 +40,11 @@ Choice.options do
       mylogger.level=Log4r::DEBUG
     end
   end
+  option :non_interactive do
+    short '-n'
+    long '--non-interactive'
+    desc 'Don\'t require human confirmation'
+  end
   option :version do
     short '-v'
     long '--version'
@@ -46,13 +55,16 @@ Choice.options do
     end
   end
 end
+mylogger.info "WARNING!!!"
+mylogger.info "WARNING!!!"
 
-mylogger.debug "Starting up "
+mylogger.info "DO NOT USE ON LIVE REPO!!. IT WILL MERGE YOUR PETS WITHOUT ASKING"
 
+mylogger.info "WARNING!!!"
+mylogger.info "WARNING!!!"
 
+Config = open_config_file(Choice[:config_file])
 
-#
+Elyan::GitWorker.start
 
-#
-# print report.to_yaml
 

@@ -1,2 +1,4 @@
-repos:
+:repos:
  - basho/riak
+
+:minimum_reviewers: 3
