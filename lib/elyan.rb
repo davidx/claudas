@@ -99,19 +99,23 @@ module Elyan
 
       mylogger.debug "Cleaning build dir #{build_dir}"
       FileUtils.rm_rf(build_dir)
+      mylogger.debug "Cloning (\"git@github.com:#{repo}\", build_dir)"
 
       g = Git.clone("git@github.com:#{repo}", build_dir)
 
       begin
         g.checkout('master')
         g.branch("integration_branch_#{pr.head.ref}").checkout
-        p g.merge("#{pr.head.sha}")
+        mylogger.debug "Trying merge"
+        g.merge("#{pr.head.sha}")
       rescue StandardError => e
         mylogger.error "Merge Failed, Stopping"
         mylogger.debug "PR ##{pr[:number]} END"
 
         build_status[:result]=:error
         build_status[:message]="Merge test failed"
+        build_status[:output]=e.inspect
+
         return build_status
       end
 
@@ -123,6 +127,7 @@ module Elyan
         mylogger.debug log_message
         build_status[:result]=:error
         build_status[:message]=log_message
+
         return build_status
       end
       unless run_build_step("TEST", "make test")
@@ -153,6 +158,7 @@ module Elyan
         log_message = "PR ##{pr[:number]} Merge FAILED #{e.inspect}"
         mylogger.debug log_message
         build_status[:message] = log_message
+        build_status[:output]=e.inspect
 
         return build_status
       end
