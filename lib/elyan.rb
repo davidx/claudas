@@ -4,6 +4,7 @@ require 'octokit'
 require 'fileutils'
 require 'choice'
 require 'highline/import'
+require 'git'
 
 Octokit.configure do |c|
   c.login = ENV['GITHUB_USER']
@@ -108,37 +109,54 @@ module Elyan
 
           mylogger.debug "Cleaning build dir #{build_dir}"
           FileUtils.rm_rf(build_dir)
-          if  run_build_step("CLONE", "git clone -q git@github.com:#{repo} #{build_dir}") &&
-              run_build_step("MASTER", "cd #{build_dir} && git checkout -q master") &&
-              run_build_step("BRANCH", "cd #{build_dir} && git checkout -q -b integration_branch_#{pr.head.ref}") &&
-              run_build_step("MERGE", "cd #{build_dir} && git rebase --verbose #{pr.head.sha}") &&
-              run_build_step("BUILD", "cd #{build_dir} && make build") &&
-              run_build_step("TEST", "cd #{build_dir} && make test")
 
 
-              mylogger.debug "OK MERGE,BUILD,TEST phase successful."
+          g = Git.clone("git@github.com:#{repo}", build_dir)
 
-              unless Choice[:non_interactive] == true
-                unless ask("[INTERACTIVE MODE] : MERGING Pull Request #{repo} PR ##{pr[:number]} \"#{pr[:title]}\" OK? (y/n)") == "y"
-                  say "OK, Safely exiting without merging"
-                  next
-                end
-              end
-              mylogger.debug "MERGING Pull Request (#{repo}, #{pr[:number]}, commit_message = 'Robot Merge OK'"
-
-              begin
-                  Octokit.merge_pull_request(repo, pr[:number], commit_message = 'Elyan GitRobot Merge', options = {})
-                  mylogger.debug "PR ##{pr[:number]} Merge OK"
-                rescue => e
-                  mylogger.debug "PR ##{pr[:number]} Merge FAILED #{e.inspect}"
-                  next
-                end
-              mylogger.debug "PR ##{pr[:number]} END"
-
+          begin
+            g.checkout('master')
+            g.branch("integration_branch_#{pr.head.ref}").checkout
+            p g.merge("#{pr.head.sha}")
+          rescue StandardError => e
+            mylogger.error "Merge Failed, Stopping"
+            next
           end
+
+
+          Dir.chdir(build_dir)
+
+          unless run_build_step("BUILD", "make build")
+            mylogger.debug "Build Failed"
+            next
+          end
+          unless run_build_step("TEST", "make test")
+            mylogger.debug "Test Failed"
+            next
+          end
+
+          mylogger.debug "[MERGE,BUILD,TEST] Successful."
+
+          unless Choice[:non_interactive] == true
+            unless ask("[INTERACTIVE MODE] : MERGING Pull Request #{repo} PR ##{pr[:number]} \"#{pr[:title]}\" OK? (y/n)") == "y"
+              say "OK, Safely exiting without merging"
+              next
+            end
+          end
+          mylogger.debug "MERGING Pull Request (#{repo}, #{pr[:number]}, commit_message = 'Robot Merge OK'"
+
+
+          begin
+            Octokit.merge_pull_request(repo, pr[:number], commit_message = 'Elyan GitRobot Merge', options = {})
+            mylogger.debug "PR ##{pr[:number]} Merge OK"
+          rescue StandardError => e
+            mylogger.debug "PR ##{pr[:number]} Merge FAILED #{e.inspect}"
+            next
+          end
+          mylogger.debug "PR ##{pr[:number]} END"
         end
       end
     end
   end
 end
+
 

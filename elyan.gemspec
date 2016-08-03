@@ -24,4 +24,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'test-unit', '~> 1.2', '>= 1.2.3'
   spec.add_runtime_dependency 'log4r', '~> 1.1', '>= 1.1.10'
   spec.add_runtime_dependency 'octokit', '~> 4.3.0'
+  spec.add_runtime_dependency 'ruby-git', '~> 1'
 end
