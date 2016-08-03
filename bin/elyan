@@ -44,6 +44,7 @@ Choice.options do
     short '-n'
     long '--non-interactive'
     desc 'Don\'t require human confirmation'
+    default false
   end
   option :version do
     short '-v'
